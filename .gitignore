@@ -1,0 +1,6 @@
+node_modules/
+config/config.env
+_data/
+/seeder.js
+/config/databases/*
+!/config/databases/devCamper.js
