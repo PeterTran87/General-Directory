@@ -4,33 +4,23 @@ const mongoose = require("mongoose");
 const databases = mongoose.connections.values();
 const Models = {};
 
-const CourseSchema = new mongoose.Schema(
+const ReviewSchema = new mongoose.Schema(
   {
     title: {
       type: String,
       trim: true,
       required: [true, "Please add a course title"],
+      maxLength: 100,
     },
-    description: {
+    text: {
       type: String,
-      required: [true, "Please add a description"],
+      required: [true, "Please add a text"],
     },
-    weeks: {
-      type: String,
-      required: [true, "Please add number of weeks"],
-    },
-    tuition: {
+    rating: {
       type: Number,
-      required: [true, "Please add a tuition cost"],
-    },
-    minimumSkill: {
-      type: String,
-      required: [true, "Please add a minimum skill"],
-      enum: ["beginner", "intermediate", "advanced"],
-    },
-    scholarshipAvailable: {
-      type: Boolean,
-      default: false,
+      min: 1,
+      max: 10,
+      required: [true, "Please add a rating between 1 and 10"],
     },
     bootcamp: {
       type: mongoose.Schema.ObjectId,
@@ -47,8 +37,11 @@ const CourseSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Static method to get avg of course tuition
-CourseSchema.statics.getAverageCost = async function (bootcampId) {
+// Prevent user from submitting more than 1 review per bootcamp
+ReviewSchema.index({ bootcamp: 1, user: 1 }, { unique: true });
+
+// Static method to get avg rating and save
+ReviewSchema.statics.getAverageRating = async function (bootcampId) {
   const obj = await this.aggregate([
     {
       $match: { bootcamp: bootcampId },
@@ -56,8 +49,8 @@ CourseSchema.statics.getAverageCost = async function (bootcampId) {
     {
       $group: {
         _id: "$bootcamp",
-        averageCost: {
-          $avg: "$tuition",
+        averageRating: {
+          $avg: "$rating",
         },
       },
     },
@@ -65,7 +58,7 @@ CourseSchema.statics.getAverageCost = async function (bootcampId) {
 
   try {
     await this.model("Bootcamp").findByIdAndUpdate(bootcampId, {
-      averageCost: Math.ceil(obj[0].averageCost / 10) * 10,
+      averageRating: obj[0].averageRating,
     });
   } catch (err) {
     console.error(err);
@@ -73,18 +66,18 @@ CourseSchema.statics.getAverageCost = async function (bootcampId) {
 };
 
 // Call getAverageCost after save
-CourseSchema.post("save", function () {
-  this.constructor.getAverageCost(this.bootcamp);
+ReviewSchema.post("save", function () {
+  this.constructor.getAverageRating(this.bootcamp);
 });
 
 // Call getAverageCost after save
-CourseSchema.pre("remove", function () {
-  this.constructor.getAverageCost(this.bootcamp);
+ReviewSchema.pre("remove", function () {
+  this.constructor.getAverageRating(this.bootcamp);
 });
 
 for (const database of databases) {
   if (database.name === "devCamper")
-    Models[`${database.name}`] = database.model("Course", CourseSchema);
+    Models[`${database.name}`] = database.model("Review", ReviewSchema);
 }
 
 module.exports = Models;

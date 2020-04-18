@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router({ mergeParams: true });
-const { protect, authorise } = require("../middlewares/auth");
+const { devCamper: Bootcamp } = require("../models/Bootcamp");
 
 // Get All Controllers
 const {
@@ -13,14 +13,16 @@ const {
   bootcampPhotoUpload,
 } = require("../controllers/bootcamps");
 
-const { devCamper: Bootcamp } = require("../models/Bootcamp");
 const advancedResults = require("../middlewares/advancedResults");
+const { protect, authorise } = require("../middlewares/auth");
 
 // Include other resource routers
 const courseRouter = require("./courses");
+const reviewRouter = require("./reviews");
 
 // Re-route into other resource routers
 router.use("/:bootcampId/courses", courseRouter);
+router.use("/:bootcampId/reviews", reviewRouter);
 
 // Routes
 router.route("/radius/:zipcode/:distance").get(getBootcampsInRadius);
