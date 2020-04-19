@@ -76,8 +76,6 @@ UserSchema.methods.getResetPasswordToken = function () {
   // Set expire
   this.resetPasswordExpired = Date.now() + 10 * 60 * 1000;
 
-  this.model.save();
-
   return resetToken;
 };
 
